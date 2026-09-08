@@ -88,8 +88,14 @@ To bump:
 3. Commit, push, then on Umbrel: Community App Stores → refresh/update the app.
 
 `opencode` tracks the latest upstream release on fresh installs (auth in `/data`
-is kept, the binary re-bootstraps into `/data/bin` if missing). To pin it, add
-`--version x.y.z` to the bootstrap line in `docker-compose.yml`.
+is kept, the binary re-bootstraps into `/data/bin` if missing). Existing installs
+keep their binary across app updates (volumes persist) — to force a refresh,
+delete `data/bin/opencode` inside the app-data folder and restart the app.
+To pin it, add `--version x.y.z` to the bootstrap line in `docker-compose.yml`.
+
+Maintainer rule: only a bump of `version` in `umbrel-app.yml` makes Umbrel offer
+an update (commits without a version bump are picked up on reinstall only).
+Always update `releaseNotes` too — Umbrel shows them in the Updates dialog.
 
 ## Repo layout (required by umbrelOS)
 
