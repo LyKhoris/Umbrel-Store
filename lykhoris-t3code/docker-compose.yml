@@ -79,10 +79,14 @@ services:
             elif [ -n "$$target" ]; then
               install_args="$$install_args --version $$target"
             fi
-            # NOTE: the env assignment must prefix `bash` (the consumer), NOT
-            # `curl` — `VAR=x cmd1 | cmd2` only sets VAR for cmd1.
-            if curl -fsSL https://opencode.ai/install | OPENCODE_INSTALL_DIR=/data/bin bash -s -- $$install_args; then
-              echo "[bootstrap] opencode installed successfully"
+            # NOTE: the upstream installer hard-codes its install dir to
+            # ~/.opencode/bin under HOME (no custom-dir support), so copy the
+            # result into /data/bin (on PATH, survives recreates).
+            if curl -fsSL https://opencode.ai/install | bash -s -- $$install_args; then
+              mkdir -p /data/bin && cp -f "$$HOME/.opencode/bin/opencode" /data/bin/opencode \
+                && chmod 755 /data/bin/opencode \
+                && echo "[bootstrap] opencode installed successfully" \
+                || echo "[bootstrap] WARNING: could not stage opencode into /data/bin"
             else
               echo "[bootstrap] WARNING: opencode install failed, starting T3 anyway"
             fi
