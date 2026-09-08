@@ -27,14 +27,16 @@ surface for Claude Code, Codex CLI, Cursor CLI, Grok Build, and OpenCode.
 
 1. Install `lykhoris-t3code` from this store.
 2. Open `http://umbrel.local:3773` (or via Umbrel home screen).
-3. Check logs for the pairing QR/URL if the client asks for it.
-4. Install + authenticate at least one provider CLI **inside** the app container:
+3. Check logs for the pairing QR/URL if the client asks for it. First boot takes
+   a few extra minutes: the container installs the `opencode` binary into the
+   persisted `/data/bin` (watch for `[bootstrap]` lines in the logs).
+4. Authenticate opencode **inside** the app container (binary is already there,
+   auth is per-user and stays manual):
 
 ```bash
 docker exec -it lykhoris-t3code_web_1 sh
-codex login
-# claude auth login
-# opencode auth login
+opencode --version  # should print a version; if not, check app logs for [bootstrap]
+opencode auth login
 ```
 
 State persists in the app data folder (`/data` -> `userdata/`), projects in
@@ -84,6 +86,10 @@ To bump:
 1. Edit `lykhoris-t3code/docker-compose.yml` → `t3@<new-version>`.
 2. Edit `lykhoris-t3code/umbrel-app.yml` → `version: "<new-version>"` + `releaseNotes`.
 3. Commit, push, then on Umbrel: Community App Stores → refresh/update the app.
+
+`opencode` tracks the latest upstream release on fresh installs (auth in `/data`
+is kept, the binary re-bootstraps into `/data/bin` if missing). To pin it, add
+`--version x.y.z` to the bootstrap line in `docker-compose.yml`.
 
 ## Repo layout (required by umbrelOS)
 

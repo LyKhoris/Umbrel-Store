@@ -26,11 +26,11 @@ description: >-
   (see this store's README).
 
 
-  NOTE: providers are NOT bundled. After install, open Umbrel Terminal and run
-  e.g. `docker exec -it lykhoris-t3code_web_1 sh` to install/login your agent
-  CLI(s) (`codex login`, `claude auth login`, `opencode auth login`, ...) and
-  optionally `t3 connect login/link --base-dir /data --headless` for T3 Connect
-  relay access.
+  NOTE: the opencode harness binary is bundled via a first-boot bootstrap into
+  the persisted /data/bin (watch for [bootstrap] in the logs). Auth stays
+  manual and per-user: open Umbrel Terminal and run
+  `docker exec -it lykhoris-t3code_web_1 sh`, then `opencode auth login`.
+  Auth persists in /data across restarts/updates.
 developer: pingdotgg (T3 Tools)
 website: https://t3.codes
 submitter: LyKhoris
@@ -39,8 +39,9 @@ repo: https://github.com/pingdotgg/t3code
 support: https://github.com/pingdotgg/t3code/issues
 gallery: []
 releaseNotes: >-
-  Initial community-store release. Runs upstream t3@0.0.40 headless (serve --mode web)
-  on port 3773 with persistent /data and /workspace.
+  Bundles the opencode harness: first boot auto-installs the opencode binary
+  into the persisted /data/bin (best-effort bootstrap, T3 always starts).
+  Auth via `opencode auth login` inside the container; persists in /data.
 dependencies: []
 path: ""
 defaultUsername: ""

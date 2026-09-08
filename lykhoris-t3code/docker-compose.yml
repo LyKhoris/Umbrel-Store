@@ -15,10 +15,28 @@ services:
     stop_grace_period: 1m
     working_dir: /workspace
     # Pin the npm release here AND bump `version` in umbrel-app.yml together.
+    # The bootstrap block below auto-installs the opencode binary into the
+    # persisted /data/bin on first boot (best-effort: T3 always starts even
+    # if the download fails, e.g. offline). Auth is per-user and stays manual.
     command:
       - sh
       - -c
-      - exec npx -y t3@0.0.40 serve /workspace --mode web --host 0.0.0.0 --port 3773 --base-dir /data --no-browser --auto-bootstrap-project-from-cwd
+      - |
+        export PATH="/data/bin:$PATH"
+        if ! command -v opencode >/dev/null 2>&1; then
+          echo "[bootstrap] opencode not found, installing into /data/bin..."
+          mkdir -p /data/bin
+          if apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar && rm -rf /var/lib/apt/lists/*; then
+            if OPENCODE_INSTALL_DIR=/data/bin curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path; then
+              echo "[bootstrap] opencode installed successfully"
+            else
+              echo "[bootstrap] WARNING: opencode install failed, starting T3 anyway"
+            fi
+          else
+            echo "[bootstrap] WARNING: package install failed, starting T3 anyway"
+          fi
+        fi
+        exec npx -y t3@0.0.40 serve /workspace --mode web --host 0.0.0.0 --port 3773 --base-dir /data --no-browser --auto-bootstrap-project-from-cwd
     volumes:
       # T3 state (userdata/state.sqlite, settings, logs, secrets)
       - ${APP_DATA_DIR}/data:/data
@@ -28,3 +46,6 @@ services:
       HOME: /data
       # Keep npm/npx cache inside the persistent volume so restarts are fast
       NPM_CONFIG_CACHE: /data/.npm
+      # /data/bin holds the bootstrapped opencode binary and survives
+      # container recreates/updates; it takes precedence on PATH.
+      PATH: /data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
