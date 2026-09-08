@@ -25,12 +25,20 @@ Rules:
 ## Update mechanics (critical — do not skip)
 
 - `umbreld` re-pulls all registered repos roughly every 5 minutes, but Umbrel
-  only *offers* an update when manifest `version` increases. A commit without
-  a version bump applies to fresh installs only, silently.
-- Therefore every user-facing change MUST bump `version` in `umbrel-app.yml`
-  AND write `releaseNotes` (shown in Umbrel's Updates dialog).
+  only *offers* an update when manifest `version` changes — the check is plain
+  string inequality (`available.version !== installed.version`), NOT semver.
+- Version scheme: `<t3-version>[.<store-rev>]`, e.g. `0.0.40`, `0.0.40.1`.
+  A t3 bump sets `version` to the new t3 version (drop the suffix).
+  A compose/bootstrap-only change users should receive bumps the store
+  revision instead (`0.0.40` → `0.0.40.1`). A commit without ANY version
+  change applies to fresh installs only, silently.
+- Every user-facing change MUST also update `releaseNotes` (Umbrel's Updates
+  dialog shows them).
 - Keep version pins in sync: the `t3@<v>` pin in `docker-compose.yml` MUST
-  equal manifest `version`.
+  equal the `<t3-version>` base of manifest `version`.
+- t3 bumps are automated: `.github/workflows/bump-t3.yml` (weekly + manual
+  dispatch) opens a PR bumping pin + version + notes. Review and merge it;
+  never commit automation output blindly.
 
 ## App: lykhoris-t3code
 
@@ -38,13 +46,15 @@ Rules:
   `node:24-bookworm-slim` (multi-arch amd64+arm64).
 - `HOME=/data`, server `--base-dir /data`, `NPM_CONFIG_CACHE=/data/.npm` —
   T3 state, Connect auth, and opencode auth all persist in the volume.
-- The opencode harness binary is bootstrapped into `/data/bin` (in `$PATH`)
-  on first boot via the official install script with
-  `OPENCODE_INSTALL_DIR=/data/bin ... --no-modify-path`. Best-effort: T3 must
-  always start even if the download fails (guard with `if`, never `set -e`
-  around network steps).
-- opencode tracks latest on fresh installs; existing installs keep their
-  binary (volumes persist). Pin with `--version x.y.z` on the bootstrap line.
+- The opencode harness binary is kept current by the bootstrap block in
+  `docker-compose.yml`: install into `/data/bin` (in `$PATH`) if missing,
+  upgrade when upstream is newer, version rechecked at most daily via the
+  `/data/.opencode-version-check` marker. Best-effort throughout: T3 must
+  always start even if the network/download fails (guard with `if`, never
+  `set -e` around network steps). Upgrade-only, never downgrade (`sort -V`).
+- opencode needs NO manifest/workflow changes — it self-updates on container
+  start. Pin with `OPENCODE_PIN="x.y.z"` in the bootstrap block if a release
+  ever breaks T3 compatibility.
 - NEVER bundle credentials, tokens, API keys, or pairing URLs. Auth
   (`opencode auth login`, `t3 connect login/link`) is always a manual,
   on-device step documented in README.md.

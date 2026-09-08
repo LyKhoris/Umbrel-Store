@@ -81,21 +81,27 @@ lives and dies with the desktop connection — not always-on).
 Upstream releases: `https://github.com/pingdotgg/t3code/releases` and npm `t3`
 dist-tags (`latest`, `nightly`).
 
-To bump:
+**t3 updates are automated.** A weekly GitHub Action
+(`.github/workflows/bump-t3.yml`, plus manual trigger under Actions) checks
+`npm view t3 version` and opens a PR bumping the `t3@` pin, manifest `version`,
+and `releaseNotes`. Merge the PR and Umbrel offers the update within ~5 minutes
+(it never auto-applies — users click Update).
+
+**opencode updates itself.** The container bootstrap installs it if missing and
+upgrades it when upstream is newer (version rechecked at most once a day, marker
+in `/data`; best-effort — T3 always starts). No store change or Umbrel update is
+involved. To pin it instead, set `OPENCODE_PIN` (e.g. `"1.0.180"`) in the
+bootstrap block of `docker-compose.yml`.
+
+Manual bump (or when automation is skipped):
 
 1. Edit `lykhoris-t3code/docker-compose.yml` → `t3@<new-version>`.
 2. Edit `lykhoris-t3code/umbrel-app.yml` → `version: "<new-version>"` + `releaseNotes`.
 3. Commit, push, then on Umbrel: Community App Stores → refresh/update the app.
 
-`opencode` tracks the latest upstream release on fresh installs (auth in `/data`
-is kept, the binary re-bootstraps into `/data/bin` if missing). Existing installs
-keep their binary across app updates (volumes persist) — to force a refresh,
-delete `data/bin/opencode` inside the app-data folder and restart the app.
-To pin it, add `--version x.y.z` to the bootstrap line in `docker-compose.yml`.
-
-Maintainer rule: only a bump of `version` in `umbrel-app.yml` makes Umbrel offer
-an update (commits without a version bump are picked up on reinstall only).
-Always update `releaseNotes` too — Umbrel shows them in the Updates dialog.
+Version scheme: manifest `version` is `<t3-version>[.<store-rev>]` (Umbrel offers
+an update on ANY version-string change). A compose/bootstrap-only change that
+users should receive bumps the store revision instead, e.g. `0.0.40` → `0.0.40.1`.
 
 ## Repo layout (required by umbrelOS)
 

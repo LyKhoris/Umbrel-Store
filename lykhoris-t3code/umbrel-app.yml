@@ -4,7 +4,7 @@ name: T3 Code
 tagline: Control Claude, Codex, Cursor, OpenCode & Grok agents from web, desktop & mobile
 icon: https://raw.githubusercontent.com/LyKhoris/Umbrel-Store/main/lykhoris-t3code/icon.svg
 category: developer
-version: "0.0.40"
+version: "0.0.40.1"
 port: 3773
 description: >-
   T3 Code is an open-source (MIT) "agent harness control surface" by pingdotgg.
@@ -26,9 +26,10 @@ description: >-
   (see this store's README).
 
 
-  NOTE: the opencode harness binary is bundled via a first-boot bootstrap into
-  the persisted /data/bin (watch for [bootstrap] in the logs). Auth stays
-  manual and per-user: open Umbrel Terminal and run
+  NOTE: the opencode harness binary is bundled and kept current automatically:
+  every container start installs it into the persisted /data/bin if missing
+  and upgrades it when upstream is newer (checked at most daily, best-effort).
+  Auth stays manual and per-user: open Umbrel Terminal and run
   `docker exec -it lykhoris-t3code_web_1 sh`, then `opencode auth login`.
   Auth persists in /data across restarts/updates.
 developer: pingdotgg (T3 Tools)
@@ -39,9 +40,9 @@ repo: https://github.com/pingdotgg/t3code
 support: https://github.com/pingdotgg/t3code/issues
 gallery: []
 releaseNotes: >-
-  Bundles the opencode harness: first boot auto-installs the opencode binary
-  into the persisted /data/bin (best-effort bootstrap, T3 always starts).
-  Auth via `opencode auth login` inside the container; persists in /data.
+  opencode now self-updates: the bootstrap installs it if missing and upgrades
+  it when upstream is newer (daily check, best-effort — T3 always starts).
+  Pin with OPENCODE_PIN in docker-compose.yml if you ever need to hold a version.
 dependencies: []
 path: ""
 defaultUsername: ""
