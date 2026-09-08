@@ -4,7 +4,7 @@ name: T3 Code
 tagline: Control Claude, Codex, Cursor, OpenCode & Grok agents from web, desktop & mobile
 icon: https://raw.githubusercontent.com/LyKhoris/Umbrel-Store/main/lykhoris-t3code/icon.svg
 category: developer
-version: "0.0.40.4"
+version: "0.0.40.5"
 port: 3773
 description: >-
   T3 Code is an open-source (MIT) "agent harness control surface" by pingdotgg.
@@ -40,10 +40,10 @@ repo: https://github.com/pingdotgg/t3code
 support: https://github.com/pingdotgg/t3code/issues
 gallery: []
 releaseNotes: >-
-  Fix opencode staging: the upstream installer hard-codes its install dir to
-  $HOME/.opencode/bin (OPENCODE_INSTALL_DIR is not supported), so the bootstrap
-  now copies the binary into /data/bin after install instead of reinstalling
-  every start.
+  Fix the actual launch failure: t3's node-pty has no linux prebuilds and must
+  compile at install time, so the bootstrap now installs a build toolchain and
+  t3 itself via a persistent npm prefix install in /data. The server also
+  reports its exit code to the logs instead of dying silently.
 dependencies: []
 path: ""
 defaultUsername: ""

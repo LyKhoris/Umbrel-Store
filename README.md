@@ -28,8 +28,9 @@ surface for Claude Code, Codex CLI, Cursor CLI, Grok Build, and OpenCode.
 1. Install `lykhoris-t3code` from this store.
 2. Open `http://umbrel.local:3773` (or via Umbrel home screen).
 3. Check logs for the pairing QR/URL if the client asks for it. First boot takes
-   a few extra minutes: the container installs the `opencode` binary into the
-   persisted `/data/bin` (watch for `[bootstrap]` lines in the logs).
+   a while (up to ~10 minutes): the container installs a build toolchain,
+   compiles t3's terminal support, and downloads both binaries — watch for
+   `[bootstrap]` lines in the logs. Later starts are fast.
 4. Authenticate opencode **inside** the app container (binary is already there,
    auth is per-user and stays manual):
 
@@ -83,9 +84,10 @@ dist-tags (`latest`, `nightly`).
 
 **t3 updates are automated.** A weekly GitHub Action
 (`.github/workflows/bump-t3.yml`, plus manual trigger under Actions) checks
-`npm view t3 version` and opens a PR bumping the `t3@` pin, manifest `version`,
-and `releaseNotes`. Merge the PR and Umbrel offers the update within ~5 minutes
-(it never auto-applies — users click Update).
+`npm view t3 version` and opens a PR bumping the `T3_PIN` in
+`docker-compose.yml`, manifest `version`, and `releaseNotes`. Merge the PR and
+Umbrel offers the update within ~5 minutes (it never auto-applies — users
+click Update).
 
 **opencode updates itself.** The container bootstrap installs it if missing and
 upgrades it when upstream is newer (version rechecked at most once a day, marker
@@ -95,7 +97,7 @@ bootstrap block of `docker-compose.yml`.
 
 Manual bump (or when automation is skipped):
 
-1. Edit `lykhoris-t3code/docker-compose.yml` → `t3@<new-version>`.
+1. Edit `lykhoris-t3code/docker-compose.yml` → `T3_PIN="<new-version>"`.
 2. Edit `lykhoris-t3code/umbrel-app.yml` → `version: "<new-version>"` + `releaseNotes`.
 3. Commit, push, then on Umbrel: Community App Stores → refresh/update the app.
 

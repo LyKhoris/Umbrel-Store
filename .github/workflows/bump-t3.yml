@@ -57,8 +57,10 @@ jobs:
               raise SystemExit(0)
 
           compose = compose_path.read_text()
-          new_compose, n = re.subn(r't3@[0-9A-Za-z._-]+', f't3@{latest}', compose)
-          assert n == 1, f'expected 1 t3 pin, found {n}'
+          new_compose, n = re.subn(
+              r'T3_PIN="[0-9A-Za-z._-]+"', f'T3_PIN="{latest}"', compose
+          )
+          assert n == 1, f'expected 1 T3_PIN, found {n}'
           compose_path.write_text(new_compose)
 
           new_manifest, n = re.subn(

@@ -34,7 +34,7 @@ Rules:
   change applies to fresh installs only, silently.
 - Every user-facing change MUST also update `releaseNotes` (Umbrel's Updates
   dialog shows them).
-- Keep version pins in sync: the `t3@<v>` pin in `docker-compose.yml` MUST
+- Keep version pins in sync: the `T3_PIN="<v>"` in `docker-compose.yml` MUST
   equal the `<t3-version>` base of manifest `version`.
 - t3 bumps are automated: `.github/workflows/bump-t3.yml` (weekly + manual
   dispatch) opens a PR bumping pin + version + notes. Review and merge it;
@@ -63,7 +63,7 @@ Rules:
 
 1. Check latest: `npm view t3 version` and/or
    `https://github.com/pingdotgg/t3code/releases`.
-2. Edit `lykhoris-t3code/docker-compose.yml` → `t3@<new-version>`.
+2. Edit `lykhoris-t3code/docker-compose.yml` → `T3_PIN="<new-version>"`.
 3. Edit `lykhoris-t3code/umbrel-app.yml` → `version: "<new-version>"`
    + `releaseNotes` describing the change.
 4. Validate (below), commit, push to `main`.
@@ -82,7 +82,7 @@ let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>{
 ```
 
 Also verify by inspection: folder name == app id, id prefixed with store id,
-`port` integer matching `APP_PORT`, `t3@` pin == manifest `version` base.
+`port` integer matching `APP_PORT`, `T3_PIN` == manifest `version` base.
 
 Shell inside compose is NOT plain shell: Compose interpolates `$VAR` /
 `${VAR}` at deploy time, so every shell variable in `command:` MUST be

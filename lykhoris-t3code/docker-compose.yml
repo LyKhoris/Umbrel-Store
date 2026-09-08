@@ -14,14 +14,16 @@ services:
     init: true
     stop_grace_period: 1m
     working_dir: /workspace
-    # Pin the npm release here AND bump `version` in umbrel-app.yml together.
-    # Version scheme: manifest `version` is `<t3-version>[.<store-rev>]`
+    # Pin the npm release in T3_PIN below AND bump `version` in umbrel-app.yml
+    # together. Version scheme: manifest `version` is `<t3-version>[.<store-rev>]`
     # (Umbrel offers an update on ANY version-string change).
-    # The bootstrap block below keeps the opencode binary current on every
-    # container start: install if missing, upgrade if behind upstream, checked
-    # at most once a day (marker in /data). Best-effort throughout: T3 must
-    # always start even if the network/download fails.
-    # Set OPENCODE_PIN to e.g. "1.0.180" to pin instead of tracking latest.
+    # The bootstrap block below prepares everything on container start:
+    # build tools (t3's node-pty has no linux prebuilds and compiles at
+    # npm-install time), the opencode binary (upgrade-checked daily), and t3
+    # itself via a persistent npm prefix install in /data (survives recreates;
+    # rebuilt when the pin or node version changes). Best-effort throughout:
+    # T3 must always start even if the network/download fails.
+    # Set OPENCODE_PIN to e.g. "1.0.180" to pin opencode instead of tracking latest.
     # NOTE: this is a compose file, NOT plain shell. Compose interpolates
     # $VAR / ${VAR} before the container starts, so EVERY shell variable here
     # MUST be written $$VAR ($${VAR}) to survive. $(...) and $((...)) pass
@@ -30,8 +32,20 @@ services:
       - sh
       - -c
       - |
-        export PATH="/data/bin:$$PATH"
+        export PATH="/data/t3/node_modules/.bin:/data/bin:$$PATH"
+        T3_PIN="0.0.40"
         OPENCODE_PIN=""
+        # Build toolchain first: t3's node-pty ships no linux prebuilds and
+        # compiles at npm-install time (make/python3/g++ required). Once per
+        # container layer; later restarts skip this.
+        if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1 || ! command -v make >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1 || ! command -v g++ >/dev/null 2>&1; then
+          echo "[bootstrap] installing build tools (curl, tar, make, python3, g++)..."
+          if apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar make python3 g++ && rm -rf /var/lib/apt/lists/*; then
+            echo "[bootstrap] build tools ready"
+          else
+            echo "[bootstrap] WARNING: package install failed (offline?), continuing anyway"
+          fi
+        fi
         installed="$(opencode --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
         now="$(date +%s)"
         last_check="$(cat /data/.opencode-version-check 2>/dev/null || echo 0)"
@@ -70,31 +84,61 @@ services:
           echo "[bootstrap] opencode $$installed is current"
         fi
         if [ "$$need_install" = "1" ]; then
-          echo "[bootstrap] installing opencode ($$reason) into /data/bin..."
-          mkdir -p /data/bin
-          if apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar && rm -rf /var/lib/apt/lists/*; then
-            install_args="--no-modify-path"
-            if [ -n "$$OPENCODE_PIN" ]; then
-              install_args="$$install_args --version $$OPENCODE_PIN"
-            elif [ -n "$$target" ]; then
-              install_args="$$install_args --version $$target"
-            fi
-            # NOTE: the upstream installer hard-codes its install dir to
-            # ~/.opencode/bin under HOME (no custom-dir support), so copy the
-            # result into /data/bin (on PATH, survives recreates).
-            if curl -fsSL https://opencode.ai/install | bash -s -- $$install_args; then
-              mkdir -p /data/bin && cp -f "$$HOME/.opencode/bin/opencode" /data/bin/opencode \
-                && chmod 755 /data/bin/opencode \
-                && echo "[bootstrap] opencode installed successfully" \
-                || echo "[bootstrap] WARNING: could not stage opencode into /data/bin"
-            else
-              echo "[bootstrap] WARNING: opencode install failed, starting T3 anyway"
-            fi
+          echo "[bootstrap] installing opencode ($$reason)..."
+          install_args="--no-modify-path"
+          if [ -n "$$OPENCODE_PIN" ]; then
+            install_args="$$install_args --version $$OPENCODE_PIN"
+          elif [ -n "$$target" ]; then
+            install_args="$$install_args --version $$target"
+          fi
+          # NOTE: the upstream installer hard-codes its install dir to
+          # ~/.opencode/bin under HOME (no custom-dir support), so copy the
+          # result into /data/bin (on PATH, survives recreates).
+          if curl -fsSL https://opencode.ai/install | bash -s -- $$install_args; then
+            mkdir -p /data/bin && cp -f "$$HOME/.opencode/bin/opencode" /data/bin/opencode \
+              && chmod 755 /data/bin/opencode \
+              && echo "[bootstrap] opencode installed successfully" \
+              || echo "[bootstrap] WARNING: could not stage opencode into /data/bin"
           else
-            echo "[bootstrap] WARNING: package install failed, starting T3 anyway"
+            echo "[bootstrap] WARNING: opencode install failed, continuing anyway"
           fi
         fi
-        exec npx -y t3@0.0.40 serve /workspace --mode web --host 0.0.0.0 --port 3773 --base-dir /data --no-browser --auto-bootstrap-project-from-cwd
+        # t3 itself: persistent npm prefix install in /data (survives recreates).
+        # Rebuilt when the pin changes or node was swapped underneath it.
+        # node-pty compiles here, which is why the toolchain above is required.
+        t3_ver="$(node -e "console.log(require('/data/t3/node_modules/t3/package.json').version)" 2>/dev/null)"
+        node_ver="$(node --version 2>/dev/null)"
+        node_saved="$(cat /data/.t3-node-version 2>/dev/null || echo none)"
+        if [ "$$t3_ver" != "$$T3_PIN" ] || [ "$$node_ver" != "$$node_saved" ]; then
+          echo "[bootstrap] installing t3@$$T3_PIN (found: $${t3_ver:-none}, node: $$node_ver)..."
+          rm -rf /data/t3
+          mkdir -p /data/t3
+          if npm install --prefix /data/t3 "t3@$$T3_PIN"; then
+            node --version > /data/.t3-node-version 2>/dev/null || true
+            echo "[bootstrap] t3@$$T3_PIN installed successfully"
+          else
+            echo "[bootstrap] WARNING: t3 npm install failed, will try npx fallback"
+          fi
+        else
+          echo "[bootstrap] t3@$$t3_ver present (node $$node_ver)"
+        fi
+        if command -v t3 >/dev/null 2>&1; then
+          T3_CMD="t3"
+        else
+          echo "[bootstrap] WARNING: t3 binary missing, falling back to npx"
+          T3_CMD="npx -y t3@$$T3_PIN"
+        fi
+        # Unquoted T3_CMD on purpose (the npx fallback is two words). Background
+        # + TERM trap keeps Umbrel stops fast; the exit-code echo keeps silent
+        # deaths visible in the logs (this burned us once already).
+        $$T3_CMD serve /workspace --mode web --host 0.0.0.0 --port 3773 --base-dir /data --no-browser --auto-bootstrap-project-from-cwd &
+        t3pid=$$!
+        trap "kill $$t3pid 2>/dev/null" TERM INT
+        wait $$t3pid
+        code=$$?
+        trap - TERM INT
+        echo "[bootstrap] t3 exited with code $$code"
+        exit $$code
     volumes:
       # T3 state (userdata/state.sqlite, settings, logs, secrets)
       - ${APP_DATA_DIR}/data:/data
