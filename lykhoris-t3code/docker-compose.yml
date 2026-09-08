@@ -79,7 +79,9 @@ services:
             elif [ -n "$$target" ]; then
               install_args="$$install_args --version $$target"
             fi
-            if OPENCODE_INSTALL_DIR=/data/bin curl -fsSL https://opencode.ai/install | bash -s -- $$install_args; then
+            # NOTE: the env assignment must prefix `bash` (the consumer), NOT
+            # `curl` — `VAR=x cmd1 | cmd2` only sets VAR for cmd1.
+            if curl -fsSL https://opencode.ai/install | OPENCODE_INSTALL_DIR=/data/bin bash -s -- $$install_args; then
               echo "[bootstrap] opencode installed successfully"
             else
               echo "[bootstrap] WARNING: opencode install failed, starting T3 anyway"
