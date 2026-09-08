@@ -1,0 +1,2 @@
+id: "lykhoris" # Store ID. Only lowercase a-z and dashes. All app IDs must start with this prefix.
+name: "LyKhoris" # Shown in umbrelOS as "<name> App Store".

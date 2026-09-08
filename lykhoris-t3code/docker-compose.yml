@@ -1,0 +1,30 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format: <app-id>_<service-name>_1
+      APP_HOST: lykhoris-t3code_web_1
+      APP_PORT: 3773
+
+  web:
+    # Multi-arch (amd64 + arm64) base. Requires Node 22.16+/23.11+/24.10+ per upstream.
+    image: node:24-bookworm-slim
+    restart: on-failure
+    init: true
+    stop_grace_period: 1m
+    working_dir: /workspace
+    # Pin the npm release here AND bump `version` in umbrel-app.yml together.
+    command:
+      - sh
+      - -c
+      - exec npx -y t3@0.0.40 serve /workspace --mode web --host 0.0.0.0 --port 3773 --base-dir /data --no-browser --auto-bootstrap-project-from-cwd
+    volumes:
+      # T3 state (userdata/state.sqlite, settings, logs, secrets)
+      - ${APP_DATA_DIR}/data:/data
+      # Agent working directory / projects
+      - ${APP_DATA_DIR}/workspace:/workspace
+    environment:
+      HOME: /data
+      # Keep npm/npx cache inside the persistent volume so restarts are fast
+      NPM_CONFIG_CACHE: /data/.npm

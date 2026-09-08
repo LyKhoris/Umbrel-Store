@@ -1,0 +1,47 @@
+manifestVersion: 1
+id: lykhoris-t3code
+name: T3 Code
+tagline: Control Claude, Codex, Cursor, OpenCode & Grok agents from web, desktop & mobile
+icon: https://raw.githubusercontent.com/LyKhoris/Umbrel-Store/main/lykhoris-t3code/icon.svg
+category: developer
+version: "0.0.40"
+port: 3773
+description: >-
+  T3 Code is an open-source (MIT) "agent harness control surface" by pingdotgg.
+  It lets you control coding agents running on your machine from a web app,
+  Electron desktop app, or mobile app (iOS/Android).
+
+
+  Works with your existing subscriptions for Claude Code, Codex CLI, Cursor CLI,
+  Grok Build, and OpenCode. Install and authenticate at least one provider, then
+  pair a client (QR / pairing URL printed in the app logs on first start).
+
+
+  This package runs the official npm release (t3@0.0.40) headless via
+  `t3 serve --mode web` on port 3773. State lives in the app's data folder
+  (/data -> userdata/state.sqlite) and your agent workspace in /workspace, both
+  persisted across restarts/updates. T3 Connect is supported: sign in once via
+  `t3 connect login/link --base-dir /data --headless` inside the container and
+  reach this Umbrel from your signed-in phone/desktop with no port forwarding
+  (see this store's README).
+
+
+  NOTE: providers are NOT bundled. After install, open Umbrel Terminal and run
+  e.g. `docker exec -it lykhoris-t3code_web_1 sh` to install/login your agent
+  CLI(s) (`codex login`, `claude auth login`, `opencode auth login`, ...) and
+  optionally `t3 connect login/link --base-dir /data --headless` for T3 Connect
+  relay access.
+developer: pingdotgg (T3 Tools)
+website: https://t3.codes
+submitter: LyKhoris
+submission: https://github.com/LyKhoris/Umbrel-Store
+repo: https://github.com/pingdotgg/t3code
+support: https://github.com/pingdotgg/t3code/issues
+gallery: []
+releaseNotes: >-
+  Initial community-store release. Runs upstream t3@0.0.40 headless (serve --mode web)
+  on port 3773 with persistent /data and /workspace.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
