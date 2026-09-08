@@ -22,60 +22,64 @@ services:
     # at most once a day (marker in /data). Best-effort throughout: T3 must
     # always start even if the network/download fails.
     # Set OPENCODE_PIN to e.g. "1.0.180" to pin instead of tracking latest.
+    # NOTE: this is a compose file, NOT plain shell. Compose interpolates
+    # $VAR / ${VAR} before the container starts, so EVERY shell variable here
+    # MUST be written $$VAR ($${VAR}) to survive. $(...) and $((...)) pass
+    # through untouched. Forgetting this silently blanks the script.
     command:
       - sh
       - -c
       - |
-        export PATH="/data/bin:$PATH"
+        export PATH="/data/bin:$$PATH"
         OPENCODE_PIN=""
         installed="$(opencode --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
         now="$(date +%s)"
         last_check="$(cat /data/.opencode-version-check 2>/dev/null || echo 0)"
-        case "$last_check" in ''|*[!0-9]*) last_check=0 ;; esac
+        case "$$last_check" in ''|*[!0-9]*) last_check=0 ;; esac
         check=0
-        if [ -z "$installed" ]; then
+        if [ -z "$$installed" ]; then
           echo "[bootstrap] opencode not found in PATH"
           check=1
         elif [ $((now - last_check)) -lt 86400 ]; then
-          echo "[bootstrap] opencode $installed present (version rechecked daily)"
+          echo "[bootstrap] opencode $$installed present (version rechecked daily)"
         else
           check=1
         fi
         target=""
-        if [ "$check" = "1" ]; then
-          if [ -n "$OPENCODE_PIN" ]; then
-            target="$OPENCODE_PIN"
+        if [ "$$check" = "1" ]; then
+          if [ -n "$$OPENCODE_PIN" ]; then
+            target="$$OPENCODE_PIN"
           else
             target="$(curl -fsSL https://api.github.com/repos/sst/opencode/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')"
           fi
-          if [ -n "$target" ]; then
-            echo "$now" > /data/.opencode-version-check 2>/dev/null || true
-          elif [ -n "$installed" ]; then
-            echo "[bootstrap] WARNING: could not check upstream, keeping opencode $installed"
+          if [ -n "$$target" ]; then
+            echo "$$now" > /data/.opencode-version-check 2>/dev/null || true
+          elif [ -n "$$installed" ]; then
+            echo "[bootstrap] WARNING: could not check upstream, keeping opencode $$installed"
           fi
         fi
         need_install=0
         reason=""
-        if [ -z "$installed" ]; then
+        if [ -z "$$installed" ]; then
           need_install=1
-          reason="missing (target: ${target:-latest})"
-        elif [ -n "$target" ] && [ "$installed" != "$target" ] && [ "$(printf '%s\n%s\n' "$installed" "$target" | sort -V | head -n 1)" = "$installed" ]; then
+          reason="missing (target: $${target:-latest})"
+        elif [ -n "$$target" ] && [ "$$installed" != "$$target" ] && [ "$(printf '%s\n%s\n' "$$installed" "$$target" | sort -V | head -n 1)" = "$$installed" ]; then
           need_install=1
-          reason="upgrade $installed -> $target"
-        elif [ "$check" = "1" ] && [ -n "$installed" ]; then
-          echo "[bootstrap] opencode $installed is current"
+          reason="upgrade $$installed -> $$target"
+        elif [ "$$check" = "1" ] && [ -n "$$installed" ]; then
+          echo "[bootstrap] opencode $$installed is current"
         fi
-        if [ "$need_install" = "1" ]; then
-          echo "[bootstrap] installing opencode ($reason) into /data/bin..."
+        if [ "$$need_install" = "1" ]; then
+          echo "[bootstrap] installing opencode ($$reason) into /data/bin..."
           mkdir -p /data/bin
           if apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar && rm -rf /var/lib/apt/lists/*; then
             install_args="--no-modify-path"
-            if [ -n "$OPENCODE_PIN" ]; then
-              install_args="$install_args --version $OPENCODE_PIN"
-            elif [ -n "$target" ]; then
-              install_args="$install_args --version $target"
+            if [ -n "$$OPENCODE_PIN" ]; then
+              install_args="$$install_args --version $$OPENCODE_PIN"
+            elif [ -n "$$target" ]; then
+              install_args="$$install_args --version $$target"
             fi
-            if OPENCODE_INSTALL_DIR=/data/bin curl -fsSL https://opencode.ai/install | bash -s -- $install_args; then
+            if OPENCODE_INSTALL_DIR=/data/bin curl -fsSL https://opencode.ai/install | bash -s -- $$install_args; then
               echo "[bootstrap] opencode installed successfully"
             else
               echo "[bootstrap] WARNING: opencode install failed, starting T3 anyway"

@@ -4,7 +4,7 @@ name: T3 Code
 tagline: Control Claude, Codex, Cursor, OpenCode & Grok agents from web, desktop & mobile
 icon: https://raw.githubusercontent.com/LyKhoris/Umbrel-Store/main/lykhoris-t3code/icon.svg
 category: developer
-version: "0.0.40.1"
+version: "0.0.40.2"
 port: 3773
 description: >-
   T3 Code is an open-source (MIT) "agent harness control surface" by pingdotgg.
@@ -40,9 +40,9 @@ repo: https://github.com/pingdotgg/t3code
 support: https://github.com/pingdotgg/t3code/issues
 gallery: []
 releaseNotes: >-
-  opencode now self-updates: the bootstrap installs it if missing and upgrades
-  it when upstream is newer (daily check, best-effort — T3 always starts).
-  Pin with OPENCODE_PIN in docker-compose.yml if you ever need to hold a version.
+  Fix the bootstrap: shell variables in docker-compose.yml must be $$-escaped
+  or Compose blanks them, which silently disabled the opencode install. The
+  bootstrap now actually installs/upgrades opencode into /data/bin.
 dependencies: []
 path: ""
 defaultUsername: ""

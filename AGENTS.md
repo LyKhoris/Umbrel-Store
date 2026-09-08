@@ -82,7 +82,28 @@ let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>{
 ```
 
 Also verify by inspection: folder name == app id, id prefixed with store id,
-`port` integer matching `APP_PORT`, `t3@` pin == manifest `version`.
+`port` integer matching `APP_PORT`, `t3@` pin == manifest `version` base.
+
+Shell inside compose is NOT plain shell: Compose interpolates `$VAR` /
+`${VAR}` at deploy time, so every shell variable in `command:` MUST be
+`$$`-escaped (`$$foo`, `$${foo:-default}`). `$(...)` and `$((...))` pass
+through untouched; `${APP_DATA_DIR}` in `volumes:` stays single-`$`
+(intentional interpolation). After editing the bootstrap, simulate what the
+container receives and syntax-check that:
+
+```bash
+npx -y js-yaml lykhoris-t3code/docker-compose.yml 2>/dev/null | node -e 'let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{ const c=JSON.parse(s); require("fs").writeFileSync("/tmp/bootstrap-src.sh", c.services.web.command[2]); });'
+node -e 'const fs=require("fs"); const s=fs.readFileSync("/tmp/bootstrap-src.sh","utf8"); fs.writeFileSync("/tmp/bootstrap.sh", s.replace(/\$\$/g,"$"));' && sh -n /tmp/bootstrap.sh && echo "BOOTSTRAP OK"
+```
+
+WARNING: do NOT inline JS regexes for `$` checks in `bash -c`/`node -e`
+double-quoted strings — shell quoting silently corrupts them (this burned us
+once already). Use single-quoted `grep -P` on the extracted block instead:
+
+```bash
+sed -n '/^      - |$/,/^    volumes:$/p' lykhoris-t3code/docker-compose.yml \
+  | grep -nP '(?<!\$)\$(?!\$|\()' && echo "UNESCAPED \$ — FIX" || echo "ESCAPING OK"
+```
 
 ## Conventions
 
